@@ -9,83 +9,98 @@ import SpriteKit
 import GameplayKit
 
 class GameScene: SKScene {
-    
-    private var label : SKLabelNode?
-    private var spinnyNode : SKShapeNode?
-    
+
+    var spaceshipCrew: SpaceshipCrew!
+    var starfield: Starfield!
+  
+    var leftArrowPressed = false
+    var rightArrowPressed = false
+    var lastUpdate: TimeInterval!
+
     override func didMove(to view: SKView) {
+        // Set up your game scene here
         
-        // Get label node from scene and store it for use later
-        self.label = self.childNode(withName: "//helloLabel") as? SKLabelNode
-        if let label = self.label {
-            label.alpha = 0.0
-            label.run(SKAction.fadeIn(withDuration: 2.0))
-        }
+        starfield = Starfield(size: size)
+        addChild(starfield)
         
-        // Create shape node to use during mouse interaction
-        let w = (self.size.width + self.size.height) * 0.05
-        self.spinnyNode = SKShapeNode.init(rectOf: CGSize.init(width: w, height: w), cornerRadius: w * 0.3)
+        let label = SKLabelNode(text: "Hello, Spaceship Crew!")
+//        label.position = CGPoint(x: size.width / 2, y: size.height - 50)
+        // 0,0 is currently the center of the screen. This command was actually putting things in the upper-right corner.
+        addChild(label)
         
-        if let spinnyNode = self.spinnyNode {
-            spinnyNode.lineWidth = 2.5
-            
-            spinnyNode.run(SKAction.repeatForever(SKAction.rotate(byAngle: CGFloat(Double.pi), duration: 1)))
-            spinnyNode.run(SKAction.sequence([SKAction.wait(forDuration: 0.5),
-                                              SKAction.fadeOut(withDuration: 0.5),
-                                              SKAction.removeFromParent()]))
-        }
+
+        // Create an instance of SpaceshipCrew
+        spaceshipCrew = SpaceshipCrew(yPosition: -size.height / 4)
+//        spaceshipCrew.position = CGPoint(x: size.width / 2, y: size.height / 2)
+//        spaceshipCrew.position = CGPoint(x: 0, y: -size.height / 4)
+//        spaceshipCrew.crewYPosition = -size.height / 4
+//        print(spaceshipCrew.crewYPosition)
+        
+//        spaceshipCrew.spaceship.position = CGPoint(x: size.width / 2, y: size.height / 2)
+        spaceshipCrew.spaceship.position = CGPoint(x: 0, y: size.height / 4)
+        // sets spaceship to upper-center of screen
+        
+        addChild(spaceshipCrew)
     }
-    
-    
-    func touchDown(atPoint pos : CGPoint) {
-        if let n = self.spinnyNode?.copy() as! SKShapeNode? {
-            n.position = pos
-            n.strokeColor = SKColor.green
-            self.addChild(n)
-        }
-    }
-    
-    func touchMoved(toPoint pos : CGPoint) {
-        if let n = self.spinnyNode?.copy() as! SKShapeNode? {
-            n.position = pos
-            n.strokeColor = SKColor.blue
-            self.addChild(n)
-        }
-    }
-    
-    func touchUp(atPoint pos : CGPoint) {
-        if let n = self.spinnyNode?.copy() as! SKShapeNode? {
-            n.position = pos
-            n.strokeColor = SKColor.red
-            self.addChild(n)
-        }
-    }
-    
+
     override func mouseDown(with event: NSEvent) {
-        self.touchDown(atPoint: event.location(in: self))
+        // Called when a mouse click occurs
+        // You can add game logic here
+
+        // Example: Move the entire crew to the clicked position
+        let location = event.location(in: self)
+        let moveAction = SKAction.move(to: location, duration: 1.0)
+        spaceshipCrew.run(moveAction)
     }
-    
-    override func mouseDragged(with event: NSEvent) {
-        self.touchMoved(toPoint: event.location(in: self))
-    }
-    
-    override func mouseUp(with event: NSEvent) {
-        self.touchUp(atPoint: event.location(in: self))
-    }
-    
+
     override func keyDown(with event: NSEvent) {
+        // Handle key events
         switch event.keyCode {
-        case 0x31:
-            if let label = self.label {
-                label.run(SKAction.init(named: "Pulse")!, withKey: "fadeInOut")
-            }
+        case 123: // Left arrow key
+            leftArrowPressed = true
+        case 124: // Right arrow key
+            rightArrowPressed = true
         default:
-            print("keyDown: \(event.characters!) keyCode: \(event.keyCode)")
+            break
         }
     }
     
+    override func keyUp(with event: NSEvent) {
+        switch event.keyCode {
+        case 123: // Left arrow key
+            leftArrowPressed = false
+        case 124: // Right arrow key
+            rightArrowPressed = false
+        default:
+            break
+        }
+    }
     
     override func update(_ currentTime: TimeInterval) {
         // Called before each frame is rendered
+        
+        // https://stackoverflow.com/questions/42705980/arrow-keys-in-spritekit
+        defer {lastUpdate = currentTime}
+        guard lastUpdate != nil else {
+            return
+        }
+        
+        let dt = currentTime - lastUpdate
+        guard dt < 1 else {
+            return // so nothing jumps when the game is unpaused
+        }
+        
+        if leftArrowPressed {
+            spaceshipCrew.spaceship.heading -= 1 * dt
+        }
+        if rightArrowPressed {
+            spaceshipCrew.spaceship.heading += 1 * dt
+        }
+        
+        // should call starfield.update() and pass in a value for spaceship speed and maybe dt
+        // to move the starfield
     }
 }
+
+// Uncomment the following line to run the game in a standalone mode
+//NSApplication.shared.run()
